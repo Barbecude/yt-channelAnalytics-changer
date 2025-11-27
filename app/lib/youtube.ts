@@ -1,8 +1,9 @@
-import { channel } from "diagnostics_channel";
+
+  const API_KEY = process.env.GOOGLE_API_KEY 
+  const CHANNEL_ID = process.env.YOUTUBE_CHANNEL_ID 
+
 
 export async function getChannelStatistics() {
-  const API_KEY = process.env.GOOGLE_API_KEY;
-  const CHANNEL_ID = process.env.YOUTUBE_CHANNEL_ID;
 
   const url = `https://www.googleapis.com/youtube/v3/channels?part=statistics&id=${CHANNEL_ID}&key=${API_KEY}`;
 
@@ -25,8 +26,7 @@ export async function getChannelStatistics() {
 
 
 export async function getMostPopularVideos() {
-  const API_KEY = process.env.GOOGLE_API_KEY;
-  const CHANNEL_ID = process.env.YOUTUBE_CHANNEL_ID;
+
   const url = `https://www.googleapis.com/youtube/v3/search?part=snippet&channelId=${CHANNEL_ID}&order=viewCount&type=video&maxResults=1&key=${API_KEY}`;
   const res = await fetch(url, { next: { revalidate: 60 } });
   const data = await res.json();
@@ -38,7 +38,6 @@ export async function getMostPopularVideos() {
 }
 
 export async function getVideoStatistics(videoIds: string[]) {
-    const API_KEY = process.env.GOOGLE_API_KEY;
     const idsString = videoIds.join(','); 
     const url = `https://www.googleapis.com/youtube/v3/videos?part=statistics&id=${idsString}&key=${API_KEY}`;
     
@@ -51,7 +50,6 @@ export async function getVideoStatistics(videoIds: string[]) {
 
 
 export async function getComments(videoId: string) {
-  const API_KEY = process.env.GOOGLE_API_KEY; // Pastikan simpan di .env.local
   const URL = `https://www.googleapis.com/youtube/v3/commentThreads?part=snippet&videoId=${videoId}&maxResults=3&key=${API_KEY}`;
 
   try {
@@ -86,9 +84,6 @@ export async function getComments(videoId: string) {
 }
 
 export async function getRecentVideos() {
-  // Ganti CHANNEL_ID dengan ID channelmu
-  const CHANNEL_ID = process.env.YOUTUBE_CHANNEL_ID; 
-   const API_KEY = process.env.GOOGLE_API_KEY;
 
   const res = await fetch(
     `https://www.googleapis.com/youtube/v3/search?key=${API_KEY}&channelId=${CHANNEL_ID}&part=snippet,id&order=date&maxResults=9&type=video`,
@@ -100,6 +95,7 @@ export async function getRecentVideos() {
   const data = await res.json();
   return data.items; // Mengembalikan array video mentah
 }
+
 
 
 // 2. Fungsi Enricher

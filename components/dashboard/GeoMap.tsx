@@ -21,7 +21,9 @@ export default function GeoMap({ data }: GeoMapProps) {
     const maxVal = Math.max(...data.map((d) => d.value), 0);
     return scaleLinear<string>()
       .domain([0, maxVal])
-      .range(["#ffedea", "#ff5233"]);
+      // --- PERUBAHAN WARNA 1 (Logic Peta) ---
+      // Dari warna merah sangat pudar (#ffe5e5) ke Merah YouTube (#FF0000)
+      .range(["#ffe5e5", "#FF0000"]);
   }, [data]);
 
   const findData = (geoId: string | undefined, geoName: string | undefined) => {
@@ -49,26 +51,25 @@ export default function GeoMap({ data }: GeoMapProps) {
         <div className="absolute top-4 right-4 flex flex-col gap-2 z-10">
           <button 
             onClick={() => setPosition((p) => ({ ...p, zoom: Math.min(4, p.zoom * 1.2) }))}
-            className="bg-white hover:bg-gray-100 shadow-sm rounded w-8 h-8 font-bold text-gray-600"
+            className="bg-white hover:bg-gray-100 shadow-xs rounded w-8 h-8 font-bold text-gray-600"
           >+</button>
           <button 
             onClick={() => setPosition((p) => ({ ...p, zoom: Math.max(1, p.zoom / 1.2) }))}
-            className="bg-white hover:bg-gray-100 shadow-sm rounded w-8 h-8 font-bold text-gray-600"
+            className="bg-white hover:bg-gray-100 shadow-xs rounded w-8 h-8 font-bold text-gray-600"
           >-</button>
           <button 
             onClick={() => setPosition({ coordinates: [0, 20], zoom: 1 })}
-            className="bg-white hover:bg-gray-100 shadow-sm rounded w-8 h-8 font-bold text-gray-600 text-xs"
+            className="bg-white hover:bg-gray-100 shadow-xs rounded w-8 h-8 font-bold text-gray-600 text-xs"
           >R</button>
         </div>
 
         {/* --- FLOATING TOOLTIP --- */}
-        {/* Menggunakan position: fixed agar ikut viewport window, bukan relative ke container */}
         {tooltip && (
            <div 
              className="fixed bg-black/90 text-white text-xs px-3 py-2 rounded pointer-events-none z-[9999] shadow-lg whitespace-nowrap border border-white/20"
              style={{ 
-               left: tooltip.x + 15, // Offset 15px ke kanan agar tidak tertutup kursor
-               top: tooltip.y + 15   // Offset 15px ke bawah
+               left: tooltip.x + 15,
+               top: tooltip.y + 15
              }}
            >
              {tooltip.content}
@@ -96,11 +97,11 @@ export default function GeoMap({ data }: GeoMapProps) {
                     <Geography
                       key={geo.rsmKey}
                       geography={geo}
+                      // Warna di sini otomatis mengikuti colorScale yang sudah diubah ke merah youtube
                       fill={cur ? colorScale(cur.value) : "#EEE"}
                       stroke="#D6D6DA"
                       strokeWidth={0.5}
                       
-                      // 1. Saat Masuk: Set Data
                       onMouseEnter={(event) => {
                         const val = cur ? cur.value.toLocaleString() : 0;
                         setTooltip({
@@ -110,9 +111,7 @@ export default function GeoMap({ data }: GeoMapProps) {
                         });
                       }}
 
-                      // 2. Saat Gerak: Update Posisi X/Y
                       onMouseMove={(event) => {
-                        // Kita hanya update posisi, konten tetap ambil dari state sebelumnya (atau bisa set ulang)
                         setTooltip((prev) => prev ? { 
                           ...prev, 
                           x: event.clientX, 
@@ -120,7 +119,6 @@ export default function GeoMap({ data }: GeoMapProps) {
                         } : null);
                       }}
 
-                      // 3. Saat Keluar: Hapus Tooltip
                       onMouseLeave={() => {
                         setTooltip(null);
                       }}
@@ -141,7 +139,11 @@ export default function GeoMap({ data }: GeoMapProps) {
 
       <div className="flex items-center justify-between text-sm text-gray-600 px-2">
         <span>Low Views</span>
-        <div className="w-32 h-3 bg-gradient-to-r from-[#ffedea] to-[#ff5233] rounded-full shadow-inner"></div>
+        
+        {/* --- PERUBAHAN WARNA 2 (Visual Legenda) --- */}
+        {/* Menggunakan hex yang sama dengan scale: #ffe5e5 ke #FF0000 */}
+        <div className="w-32 h-3 bg-gradient-to-r from-[#ffe5e5] to-[#FF0000] rounded-full shadow-inner"></div>
+        
         <span>High Views</span>
       </div>
 

@@ -1,5 +1,6 @@
 import React from 'react';
 import { formatNumber } from '@/app/lib/formaters';
+import { useChannel } from "@/app/context/ChannelContext";
 
 interface StatCardProps {
   title: string;
@@ -15,9 +16,9 @@ const StatCard: React.FC<StatCardProps> = ({ title, value }) => {
   const displayValue = !isNaN(Number(value)) ? formatNumber(value) : value;
 
   return (
-    <div className="p-6 flex-1 bg-white space-x-6"> 
+    <div className="p-6 flex-1 bg-white space-x-6 overflow-x-auto"> 
       <h3 className="text-lg font-semibold text-gray-700 mb-2">{title}</h3>
-      <p className="text-3xl font-bold text-gray-900">{displayValue}</p>
+      <p className="text-2xl font-bold text-gray-900 whitespace-nowrap">{displayValue}</p>
     </div>
   );
 };
