@@ -4,7 +4,6 @@ export async function getChannelStatistics() {
   const API_KEY = process.env.GOOGLE_API_KEY;
   const CHANNEL_ID = process.env.YOUTUBE_CHANNEL_ID;
 
-  // 1. Siapkan alamat tujuan (Endpoint API YouTube)
   const url = `https://www.googleapis.com/youtube/v3/channels?part=statistics&id=${CHANNEL_ID}&key=${API_KEY}`;
 
   // 2. Pergi mengambil data
@@ -16,7 +15,7 @@ export async function getChannelStatistics() {
   }
 
   const data = await res.json();
-  console.log(data);
+ 
   
   // 3. Kembalikan hanya bagian yang kita butuhkan
   return data.items[0].statistics;
@@ -61,7 +60,7 @@ export async function getMostPopularVideos() {
   const data = await res.json();
 
 
-  console.log("🔥 DATA POPULAR VIDEOS:", JSON.stringify(data, null, 2));
+  // console.log("🔥 DATA POPULAR VIDEOS:", JSON.stringify(data, null, 2));
 
   return data.items;
 }
@@ -114,66 +113,13 @@ export async function getComments(videoId: string) {
   }
 }
 
-
-// lib/analytics.ts
-
-const formatDate = (date: Date) => date.toISOString().split('T')[0];
-
-// 👇 UBAH DI SINI: Terima parameter accessToken
-export async function getTotalViewsAnalytics(accessToken: string) {
-
-
-  // Cek kalau token kosong, langsung stop
-  if (!accessToken) return [];
-
-  // Set rentang waktu: 1 Tahun ke belakang
-  const end = new Date();
-  const start = new Date();
-  start.setFullYear(end.getFullYear() - 1);
-
-  const startDate = formatDate(start);
-  const endDate = formatDate(end);
-
-  // Request ke YouTube Analytics API
-const res = await fetch(
-    `https://youtubeanalytics.googleapis.com/v2/reports?` + 
-    `ids=channel==MINE&` + 
-    `startDate=${startDate}&` + 
-    `endDate=${endDate}&` + 
-    `metrics=views&` + 
-    `dimensions=day&` +  // 👈 UBAH DARI 'month' JADI 'day'
-    `sort=day`,
-    {
-      headers: {
-        // 👇 GUNAKAN TOKEN DARI PARAMETER
-        Authorization: `Bearer ${accessToken}`, 
-        Accept: 'application/json',
-      },
-      // Cache dimatikan atau pendek saja karena ini data sensitif per user
-      next: { revalidate: 0 } 
-    }
-  );
-
-  const data = await res.json();
-
-  const chartData = data.rows?.map((row: any) => {
-    return {
-      date: row[0], 
-      views: row[1]
-    };
-  }) || [];
-
-  return chartData;
-  
-}
-
-export async function getRecentVideos(maxResults = 9) {
+export async function getRecentVideos() {
   // Ganti CHANNEL_ID dengan ID channelmu
   const CHANNEL_ID = process.env.YOUTUBE_CHANNEL_ID; 
    const API_KEY = process.env.GOOGLE_API_KEY;
 
   const res = await fetch(
-    `https://www.googleapis.com/youtube/v3/search?key=${API_KEY}&channelId=${CHANNEL_ID}&part=snippet,id&order=date&maxResults=${maxResults}&type=video`,
+    `https://www.googleapis.com/youtube/v3/search?key=${API_KEY}&channelId=${CHANNEL_ID}&part=snippet,id&order=date&maxResults=9&type=video`,
     { next: { revalidate: 3600 } } // Cache 1 jam
   );
 
@@ -181,4 +127,50 @@ export async function getRecentVideos(maxResults = 9) {
   
   const data = await res.json();
   return data.items; // Mengembalikan array video mentah
+}
+
+
+// 2. Fungsi Enricher
+export interface RawVideo {
+  id: string | { videoId: string }; // Handle ID string atau object
+  snippet?: any;
+  [key: string]: any;
+}
+
+export interface EnrichedVideo extends RawVideo {
+  id: string; 
+  statistics: any; 
+  comments: any[];
+}
+
+// 2. Fungsi Enricher (Penyatu Data)
+export async function enrichVideosWithDetails(rawVideos: RawVideo[]): Promise<EnrichedVideo[]> {
+  // Fail fast
+  if (!rawVideos || rawVideos.length === 0) return [];
+
+  // A. Normalisasi ID
+  const videoIds = rawVideos.map((v) => 
+    typeof v.id === 'string' ? v.id : v.id.videoId
+  );
+
+  // B. Fetch stats & comments secara PARALEL
+  const [videoStats, videoComments] = await Promise.all([
+    getVideoStatistics(videoIds), 
+    Promise.all(videoIds.map((id) => getComments(id)))
+  ]);
+
+  // C. Buat Map (Optimasi O(1))
+  const statsMap = new Map(videoStats.map((s: any) => [s.id, s.statistics]));
+
+  // D. Gabungkan
+  return rawVideos.map((video, index) => {
+    const videoId = typeof video.id === 'string' ? video.id : video.id.videoId;
+    
+    return {
+      ...video,
+      id: videoId, 
+      statistics: statsMap.get(videoId) || null,
+      comments: videoComments[index] || []
+    };
+  });
 }

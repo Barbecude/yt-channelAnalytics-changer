@@ -20,3 +20,14 @@ body {
   font-family: Inter;
   padding: 20px;
 }
+
+/* file styles.css */
+.border-dashed-long {
+  border-style: dashed;
+  border-width: 2px;
+  border-radius: 8px;
+  border-color: #6b7280; /* gray-500 */
+  border-image: none;
+  /* atur panjang dash dan spasi */
+  border-spacing: 6px;
+}

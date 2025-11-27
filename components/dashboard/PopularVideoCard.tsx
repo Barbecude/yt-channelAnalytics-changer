@@ -17,7 +17,7 @@ export default function PopularVideoCard({ video, formatNumber }: any) {
 
   // --- BAGIAN 2: TAMPILAN (UI) ---
   return (
-    <div className="w-full max-w-5xl bg-white rounded-2xl border border-gray-100 p-6 shadow-xs mb-6">
+    <div className="bg-white rounded-2xl border border-gray-100 p-6 shadow-xs">
       
       {/* Judul Section */}
       <h3 className="font-bold text-lg text-gray-900 mb-5">Popular Video</h3>
@@ -143,6 +143,7 @@ export default function PopularVideoCard({ video, formatNumber }: any) {
                   {/* Tombol View All */}
                   <div className="mt-6">
                     <button className="w-full rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-xs ring-1 ring-inset ring-gray-300 hover:bg-gray-50">
+                  
                       View all comments
                     </button>
                   </div>

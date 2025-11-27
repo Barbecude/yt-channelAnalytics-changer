@@ -74,13 +74,14 @@ export default function LatestVideoCard({ video }: VideoCardProps) {
             </h3>
             
             <p className="text-sm text-gray-500 mb-4">
+            
             {new Date(snippet.publishedAt).toLocaleDateString('id-ID', {
                 day: 'numeric', month: 'short', year: 'numeric'
             })}
             </p>
         </div>
         {/* Bagian Statistik (Views & Likes) */}
-        <div className="flex  items-center gap-3 pt-3 border-t border-gray-100 text-xs text-gray-600 font-medium">
+        <div className="flex items-center gap-3 pt-3 border-t border-gray-100 text-xs text-gray-600 font-medium">
           <div className="flex items-center gap-1">
             {/* Icon Mata (Views) */}
             <Eye size={16} className="text-gray-500" />
@@ -99,7 +100,7 @@ export default function LatestVideoCard({ video }: VideoCardProps) {
                <span>{statistics ? formatNumber(statistics.commentCount) : '-'}</span>
             </div>
 
-   {statistics && (
+            {statistics && (
             <div className={`flex text-end items-center gap-1 px-2 py-1 rounded-full text-[10px] font-bold ml-auto ${
                 isGoodPerformance 
                 ? "bg-green-50 text-green-700"
@@ -113,7 +114,6 @@ export default function LatestVideoCard({ video }: VideoCardProps) {
 
      {/* --- BADGE PERFORMA BARU --- */}
         </div>
-        
       </div>
     </Link>
   );

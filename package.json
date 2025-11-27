@@ -9,11 +9,14 @@
     "lint": "eslint"
   },
   "dependencies": {
+    "d3-scale": "^4.0.2",
     "lucide-react": "^0.555.0",
     "next": "16.0.3",
     "next-auth": "^4.24.13",
     "react": "19.2.0",
     "react-dom": "19.2.0",
+    "react-simple-maps": "^3.0.0",
+    "react-tooltip": "^5.30.0",
     "rechart": "^0.0.1",
     "recharts": "^3.5.0"
   },
