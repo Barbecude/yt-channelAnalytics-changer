@@ -2,34 +2,30 @@
 
 import { createContext, useContext, useState, ReactNode } from 'react';
 
-// 1. Definisikan bentuk datanya
-type ChannelContextType = {
-  activeChannelId: string;
-  setActiveChannelId: (id: string) => void;
-};
+interface ChannelContextType {
+  channelId: string;
+  setChannelId: (id: string) => void;
+  channelName: string;
+  setChannelName: (name: string) => void;
+}
 
-// 2. Buat Context dengan nilai default null
 const ChannelContext = createContext<ChannelContextType | undefined>(undefined);
 
-// 3. Buat Provider (Pembungkus)
-export function ChannelProvider({ children }: { children: ReactNode }) {
-  // Defaultnya ambil dari ENV, kalau tidak ada kosongkan
-  const [activeChannelId, setActiveChannelId] = useState<string>(
-    process.env.YOUTUBE_CHANNEL_ID || ''
-  );
+export function ChannelProvider({ children, initialChannelId }: { children: ReactNode; initialChannelId: string }) {
+  const [channelId, setChannelId] = useState(initialChannelId);
+  const [channelName, setChannelName] = useState('');
 
   return (
-    <ChannelContext.Provider value={{ activeChannelId, setActiveChannelId }}>
+    <ChannelContext.Provider value={{ channelId, setChannelId, channelName, setChannelName }}>
       {children}
     </ChannelContext.Provider>
   );
 }
 
-// 4. Custom Hook biar gampang dipanggil di mana saja
 export function useChannel() {
   const context = useContext(ChannelContext);
   if (!context) {
-    throw new Error("useChannel must be used within a ChannelProvider");
+    throw new Error('useChannel must be used within ChannelProvider');
   }
   return context;
 }

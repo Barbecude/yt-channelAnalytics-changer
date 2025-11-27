@@ -1,11 +1,10 @@
 
   const API_KEY = process.env.GOOGLE_API_KEY 
-  const CHANNEL_ID = process.env.YOUTUBE_CHANNEL_ID 
 
 
-export async function getChannelStatistics() {
+export async function getChannelStatistics(channelId: string) {
 
-  const url = `https://www.googleapis.com/youtube/v3/channels?part=statistics&id=${CHANNEL_ID}&key=${API_KEY}`;
+  const url = `https://www.googleapis.com/youtube/v3/channels?part=statistics&id=${channelId}&key=${API_KEY}`;
 
   // 2. Pergi mengambil data
   const res = await fetch(url, { next: { revalidate: 60 } }); 
@@ -16,38 +15,26 @@ export async function getChannelStatistics() {
   }
 
   const data = await res.json();
- 
-  
-  // 3. Kembalikan hanya bagian yang kita butuhkan
   return data.items[0].statistics;
  
 }
 
 
 
-export async function getMostPopularVideos() {
-
-  const url = `https://www.googleapis.com/youtube/v3/search?part=snippet&channelId=${CHANNEL_ID}&order=viewCount&type=video&maxResults=1&key=${API_KEY}`;
+export async function getMostPopularVideos(channelId: string) {
+  const url = `https://www.googleapis.com/youtube/v3/search?part=snippet&channelId=${channelId}&order=viewCount&type=video&maxResults=1&key=${API_KEY}`;
   const res = await fetch(url, { next: { revalidate: 60 } });
   const data = await res.json();
-
-
-  // console.log("🔥 DATA POPULAR VIDEOS:", JSON.stringify(data, null, 2));
-
   return data.items;
 }
 
 export async function getVideoStatistics(videoIds: string[]) {
     const idsString = videoIds.join(','); 
     const url = `https://www.googleapis.com/youtube/v3/videos?part=statistics&id=${idsString}&key=${API_KEY}`;
-    
     const res = await fetch(url, { next: { revalidate: 60 } });
     const data = await res.json();
-  
     return data.items || [];
 }
-
-
 
 export async function getComments(videoId: string) {
   const URL = `https://www.googleapis.com/youtube/v3/commentThreads?part=snippet&videoId=${videoId}&maxResults=3&key=${API_KEY}`;
@@ -83,10 +70,10 @@ export async function getComments(videoId: string) {
   }
 }
 
-export async function getRecentVideos() {
+export async function getRecentVideos(channelId: string) {
 
   const res = await fetch(
-    `https://www.googleapis.com/youtube/v3/search?key=${API_KEY}&channelId=${CHANNEL_ID}&part=snippet,id&order=date&maxResults=9&type=video`,
+    `https://www.googleapis.com/youtube/v3/search?key=${API_KEY}&channelId=${channelId}&part=snippet,id&order=date&maxResults=9&type=video`,
     { next: { revalidate: 3600 } } // Cache 1 jam
   );
 
@@ -97,8 +84,6 @@ export async function getRecentVideos() {
 }
 
 
-
-// 2. Fungsi Enricher
 export interface RawVideo {
   id: string | { videoId: string }; // Handle ID string atau object
   snippet?: any;
