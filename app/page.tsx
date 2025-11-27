@@ -1,49 +1,120 @@
-import { getChannelStatistics } from "./lib/youtube";
-import AuthProfile from "@/components/AuthProfile";
+import { getServerSession } from "next-auth";
+import { authOptions } from "./api/auth/[...nextauth]/route";
+import { 
+  getChannelStatistics, 
+  getMostPopularVideos, 
+  getVideoStatistics, 
+  getComments, 
+  getTotalViewsAnalytics,
+  // getRecentVideos
+} from "./lib/youtube";
 
-// 👇 1. Fungsi pembantu untuk menyingkat angka
-const formatNumber = (num: string) => {
-  return new Intl.NumberFormat('en-US', { // Gunakan 'id-ID' jika ingin format Indonesia (misal: 1,2 jt)
-    notation: "compact",
-    compactDisplay: "short",
-    maximumFractionDigits: 1 // Membatasi desimal, misal 1.5M bukan 1.53M
-  }).format(parseInt(num));
+import { enrichVideosWithDetails } from "./lib/youtube.helpers";
+
+// Components
+import AuthProfile from "@/components/AuthProfile";
+import StatCard from "@/components/dashboard/StatCard";
+import PopularVideoCard from "@/components/dashboard/PopularVideoCard";
+import AnalyticsChart from "@/components/dashboard/TotalViewsAnalyticsChart";
+
+// --- Utility: Formatter Angka ---
+const formatNumber = (num: string | number) => {
+  const val = typeof num === 'string' ? parseInt(num) : num;
+  if (isNaN(val)) return '0';
+  
+  return new Intl.NumberFormat('en-US', {
+    notation: "compact", 
+    compactDisplay: "short", 
+    maximumFractionDigits: 1
+  }).format(val);
 };
 
+// --- Logic: Data Fetching ---
+async function getDashboardData(accessToken?: string) {
+  // 1. Fetch Data Utama (Channel & Popular Videos) + Analytics (jika login) secara paralel
+  const [channelStats, popularVideos, analyticsData] = await Promise.all([
+    getChannelStatistics(),
+    getMostPopularVideos(),
+    accessToken ? getTotalViewsAnalytics(accessToken) : Promise.resolve([])
+  ]);
+
+  if (!popularVideos || popularVideos.length === 0) {
+    return { channelStats, analyticsData, combinedVideos: [] };
+  }
+
+  // 2. Fetch Detail Video (Stats & Comments) berdasarkan Popular Videos
+  const videoIds = popularVideos.map((v: any) => v.id.videoId);
+  const [videoStats, videoComments] = await Promise.all([
+    getVideoStatistics(videoIds),
+    Promise.all(videoIds.map((id: string) => getComments(id)))
+  ]);
+
+  // 3. Gabungkan Data (Merge) agar siap dirender
+  // Menggunakan Map untuk akses O(1) yang lebih cepat daripada find()
+  const statsMap = new Map(videoStats.map((s: any) => [s.id, s.statistics]));
+
+  const combinedVideos = popularVideos.map((video: any, index: number) => ({
+    ...video,
+    statistics: statsMap.get(video.id.videoId),
+    comments: videoComments[index]
+  }));
+
+  return { channelStats, analyticsData, combinedVideos };
+}
+
+// --- Main Component ---
 export default async function Home() {
-  const stats = await getChannelStatistics();
-
+  const session: any = await getServerSession(authOptions);
+  
+  // Kode di dalam komponen jadi sangat bersih 👇
+  const { channelStats, analyticsData, combinedVideos } = await getDashboardData(session?.accessToken);
+  // const recentVideosRaw = await getRecentVideos();
+  // const allVideosComplete = await enrichVideosWithDetails(recentVideosRaw);
   return (
-    <div>
-      <h1>YouTube Dashboard 🚀</h1>
-      
+    <main>
+      <h1 className="text-2xl font-bold mb-4">YouTube Dashboard 🚀</h1>
       <AuthProfile />
+      <hr className="my-8" />
 
-      <hr style={{ margin: "30px 0" }} />
+      {/* Bagian Statistik Utama */}
+      <section className="flex flex-col sm:flex-row bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden divide-y divide-gray-200 sm:divide-y-0 sm:divide-x mb-6">
+        <StatCard title="Subscribers" value={formatNumber(channelStats.subscriberCount)} />
+        <StatCard title="Total Views" value={formatNumber(channelStats.viewCount)} />
+        <StatCard title="Video Uploaded" value={formatNumber(channelStats.videoCount)} />
+      </section>
 
-      <h2>Statistik Channel</h2>
-     <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-8">
-        
-        {/* Kartu Subscribers */}
-        <div>
-          <h3>Subscribers</h3>
-          {/* 👇 2. Panggil fungsi formatNumber di sini */}
-          <p>{formatNumber(stats.subscriberCount)}</p>
-        </div>
+      {/* Bagian Popular Videos */}
+      <section className="mb-8 space-y-4">
+        <h2 className="text-lg font-semibold text-gray-700">Popular Videos</h2>
+        {combinedVideos.map((video: any) => (
+          <PopularVideoCard 
+            key={video.id.videoId} 
+            video={video} 
+            formatNumber={formatNumber} 
+          />
+        ))}
+      </section>
 
-        {/* Kartu Views */}
-        <div>
-          <h3>Total Views</h3>
-          <p>{formatNumber(stats.viewCount)}</p>
-        </div>
+      {/* Bagian Analytics Chart (Conditional Rendering) */}
+      <section className="mb-8">
+        <h2 className="text-lg font-semibold text-gray-700 mb-4">Analytics Overview</h2>
+        {session?.accessToken ? (
+          <AnalyticsChart data={analyticsData} />
+        ) : (
+          <div className="p-8 text-center bg-white rounded-xl border border-dashed border-gray-300">
+            <p className="text-gray-500">🔒 Login dengan Google untuk melihat Grafik Views Historis</p>
+          </div>
+        )}
+      </section>
 
-        {/* Kartu Video */}
-        <div>
-          <h3>Total Video</h3>
-          <p>{formatNumber(stats.videoCount)}</p>
-        </div>
-
-      </div>
-    </div>
+      <section>
+        {/* <div className="grid grid-cols-3 gap-4">
+      {allVideosComplete.map(video => (
+        // Component Card yang sama bisa dipakai
+        <VideoCard key={video.id} data={video} /> 
+      ))}
+    </div> */}
+      </section>
+    </main>
   );
 }
