@@ -101,7 +101,7 @@ export default function GeoMap({ data }: GeoMapProps) {
                       stroke="#D6D6DA"
                       strokeWidth={0.5}
                       
-                      onMouseEnter={(event) => {
+                      onMouseEnter={(event: any) => {
                         const val = cur ? cur.value.toLocaleString() : 0;
                         setTooltip({
                           x: event.clientX,
@@ -110,7 +110,7 @@ export default function GeoMap({ data }: GeoMapProps) {
                         });
                       }}
 
-                      onMouseMove={(event) => {
+                      onMouseMove={(event: any) => {
                         setTooltip((prev) => prev ? { 
                           ...prev, 
                           x: event.clientX, 
