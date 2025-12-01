@@ -3,29 +3,107 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LayoutGrid, Server, Activity, Globe, BarChart3, Settings, LogOut, Github, Star } from "lucide-react";
+import { useChannel } from "@/app/context/ChannelContext";
+import { useEffect, useState } from "react";
+import { LayoutGrid, Server, Activity, Globe, BarChart3, Settings, LogOut, Github, Star, ExternalLink } from "lucide-react";
+
+interface ChannelInfo {
+  title: string;
+  customUrl: string;
+  thumbnails: {
+    default?: { url: string };
+    medium?: { url: string };
+    high?: { url: string };
+  };
+  subscriberCount: string;
+}
 
 export function Sidebar() {
   const pathname = usePathname();
+  const { channelId } = useChannel();
+  const [channelInfo, setChannelInfo] = useState<ChannelInfo | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function fetchChannelInfo() {
+      if (!channelId) return;
+
+      setLoading(true);
+      try {
+        const response = await fetch(`/api/channel?channelId=${channelId}`);
+        if (response.ok) {
+          const data = await response.json();
+          setChannelInfo(data);
+        }
+      } catch (error) {
+        console.error('Error fetching channel info:', error);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    fetchChannelInfo();
+  }, [channelId]);
+
+  const formatSubscribers = (count: string) => {
+    const num = parseInt(count);
+    if (num >= 1000000) {
+      return (num / 1000000).toFixed(1) + 'M';
+    } else if (num >= 1000) {
+      return (num / 1000).toFixed(1) + 'K';
+    }
+    return num.toString();
+  };
 
   return (
     <aside className="w-[280px] h-screen bg-gray-50/50 border-r border-gray-200 flex flex-col sticky top-0">
 
       {/* 1. Profile Section */}
-      <div className="p-4 mb-4">
-        <div className="flex items-center gap-3 px-2">
-          <div className="w-10 h-10 rounded-full bg-gray-900 flex items-center justify-center text-white font-bold">
-            <img
-              src="https://avatar.vercel.sh/channelc"
-              alt="Avatar"
-              className="w-10 h-10 rounded-full"
-            />
+      <div className="p-4 mb-2 border-b border-gray-200">
+        {loading ? (
+          <div className="flex items-center gap-3 px-2 py-2">
+            <div className="w-12 h-12 rounded-full bg-gray-200 animate-pulse"></div>
+            <div className="flex-1 space-y-2">
+              <div className="h-4 bg-gray-200 rounded animate-pulse"></div>
+              <div className="h-3 bg-gray-200 rounded w-2/3 animate-pulse"></div>
+            </div>
           </div>
-          <div className="flex flex-col">
-            <span className="text-sm font-semibold text-gray-900">Channel C</span>
-            <span className="text-xs text-gray-500">@channelc</span>
+        ) : channelInfo ? (
+          <div>
+            <div className="flex items-center gap-3 px-2 mb-3">
+              <img
+                src={channelInfo.thumbnails.medium?.url || channelInfo.thumbnails.default?.url || 'https://avatar.vercel.sh/channel'}
+                alt={channelInfo.title}
+                className="w-12 h-12 rounded-full object-cover ring-2 ring-gray-200"
+              />
+              <div className="flex flex-col flex-1 min-w-0">
+                <span className="text-sm font-semibold text-gray-900 truncate">{channelInfo.title}</span>
+                <span className="text-xs text-gray-500">
+                  {formatSubscribers(channelInfo.subscriberCount)} subscribers
+                </span>
+              </div>
+            </div>
+
+            {/* View Channel Button */}
+            <a
+              href={`https://www.youtube.com/channel/${channelId}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center justify-center gap-2 w-full px-3 py-2 text-xs font-medium text-white bg-red-600 hover:bg-red-700 rounded-md transition-colors"
+            >
+              <ExternalLink size={14} />
+              View Channel on YouTube
+            </a>
           </div>
-        </div>
+        ) : (
+          <div className="flex items-center gap-3 px-2">
+            <div className="w-12 h-12 rounded-full bg-gray-300"></div>
+            <div className="flex flex-col">
+              <span className="text-sm font-semibold text-gray-500">Channel</span>
+              <span className="text-xs text-gray-400">Loading...</span>
+            </div>
+          </div>
+        )}
       </div>
 
       <div className="flex-1 overflow-y-auto px-3 py-2 space-y-6">
