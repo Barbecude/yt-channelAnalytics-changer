@@ -4,6 +4,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useChannel } from "@/app/context/ChannelContext";
+import { useSidebar } from "@/app/context/SidebarContext";
 import { useEffect, useState } from "react";
 import { signOut } from "next-auth/react";
 import { useGithubStars } from "@/hooks/useGithubStars";
@@ -23,6 +24,7 @@ interface ChannelInfo {
 export function Sidebar() {
   const pathname = usePathname();
   const { channelId } = useChannel();
+  const { isSidebarOpen, closeSidebar } = useSidebar();
   const [channelInfo, setChannelInfo] = useState<ChannelInfo | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -58,7 +60,23 @@ export function Sidebar() {
   };
 
   return (
-    <aside className="w-[280px] h-screen border-r border-gray-200 flex flex-col sticky top-0">
+    <>
+      {/* Mobile Overlay */}
+      {isSidebarOpen && (
+        <div 
+          className="fixed inset-0 bg-black/50 z-40 lg:hidden"
+          onClick={closeSidebar}
+        />
+      )}
+
+      <aside 
+        className={`
+          fixed inset-y-0 left-0 z-50 w-[280px] h-screen bg-white border-r border-gray-200 flex flex-col 
+          transition-transform duration-300 ease-in-out
+          lg:translate-x-0 lg:static lg:inset-auto lg:flex lg:sticky lg:top-0
+          ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}
+        `}
+      >
 
       {/* 1. Profile Section */}
       <div className="p-4 mb-2 border-b border-gray-200">
@@ -113,11 +131,11 @@ export function Sidebar() {
         {/* 2. Navigation Section */}
         <div>
           <nav className="space-y-0.5">
-            <NavItem href="/" icon={<LayoutGrid size={18} />} label="Overview" active={pathname === "/"} />
-            <NavItem href="/allvideos" icon={<ListVideo size={18} />} label="All Videos" active={pathname === "/allvideos"} />
-            {/* <NavItem href="/analytics" icon={<Activity size={18} />} label="Deep Analytics" active={pathname === "/analytics"} /> */}
-            <NavItem href="/customize" icon={<Brush size={18} />} label="Customize Channel" active={pathname === "/customize"} />
-            {/* <NavItem href="/revenue" icon={<BarChart3 size={18} />} label="Revenue" active={pathname === "/revenue"} /> */}
+            <NavItem href="/" icon={<LayoutGrid size={18} />} label="Overview" active={pathname === "/"} onClick={closeSidebar} />
+            <NavItem href="/allvideos" icon={<ListVideo size={18} />} label="All Videos" active={pathname === "/allvideos"} onClick={closeSidebar} />
+            {/* <NavItem href="/analytics" icon={<Activity size={18} />} label="Deep Analytics" active={pathname === "/analytics"} onClick={closeSidebar} /> */}
+            <NavItem href="/customize" icon={<Brush size={18} />} label="Customize Channel" active={pathname === "/customize"} onClick={closeSidebar} />
+            {/* <NavItem href="/revenue" icon={<BarChart3 size={18} />} label="Revenue" active={pathname === "/revenue"} onClick={closeSidebar} /> */}
           </nav>
         </div>
 
@@ -154,7 +172,7 @@ export function Sidebar() {
         </Link>
 
         {/* Settings (Moved here) */}
-        {/* <NavItem href="/settings" icon={<Settings size={18} />} label="Settings" active={pathname === "/settings"} /> */}
+        {/* <NavItem href="/settings" icon={<Settings size={18} />} label="Settings" active={pathname === "/settings"} onClick={closeSidebar} /> */}
 
         {/* Logout */}
         <button
@@ -167,14 +185,16 @@ export function Sidebar() {
         </button>
       </div>
     </aside>
+    </>
   );
 }
 
 // Helper Component for Navigation Links
-function NavItem({ href, icon, label, active = false }: { href: string; icon: any; label: string; active?: boolean }) {
+function NavItem({ href, icon, label, active = false, onClick }: { href: string; icon: any; label: string; active?: boolean; onClick?: () => void }) {
   return (
     <Link
       href={href}
+      onClick={onClick}
       className={`
         flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium transition-colors
         ${active

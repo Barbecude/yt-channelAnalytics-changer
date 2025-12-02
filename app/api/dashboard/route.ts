@@ -33,7 +33,7 @@ export async function GET(request: NextRequest) {
     const endDate = new Date();
     const startDate = new Date();
 
-    if (timeRange === 'Last 24 hours') {
+    if (timeRange === '24 hours') {
       startDate.setDate(endDate.getDate() - 1);
     } else if (timeRange === '7 days') {
       startDate.setDate(endDate.getDate() - 7);

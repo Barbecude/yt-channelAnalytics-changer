@@ -2,7 +2,7 @@
 
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 
-export type TimeRange = 'Last 24 hours' | '7 days' | '30 days' | 'Lifetime';
+export type TimeRange = '24 hours' | '7 days' | '30 days' | 'Lifetime';
 
 interface ChannelContextType {
   channelId: string;

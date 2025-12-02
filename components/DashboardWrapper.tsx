@@ -107,12 +107,12 @@ export function DashboardWrapper({ initialData, defaultChannelId }: DashboardWra
         </Card>
       </section>
       {/* Popular Video & Geo Map - Top Section */}
-      <section className="grid grid-cols-1 lg:grid-cols-2 gap-5 mb-5">
+      <section className="grid grid-cols-12 gap-5 mb-5">
         {/* Popular Video */}
         <PopularVideoCard video={firstVideo} />
 
         {/* Geo Map */}
-        <Card className="overflow-hidden">
+        <Card className="overflow-hidden col-span-12 md:col-span-8">
           <CardHeader>
             <CardTitle>Geographic Distribution</CardTitle>
             <CardDescription>Views by Country</CardDescription>

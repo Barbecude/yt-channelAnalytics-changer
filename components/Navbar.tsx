@@ -3,6 +3,7 @@
 import { Search, Bell, HelpCircle, Menu, X, ChevronDown } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
 import { useChannel } from "@/app/context/ChannelContext";
+import { useSidebar } from "@/app/context/SidebarContext";
 import { Card } from "@/components/ui/card";
 import { PageHeader } from "@/components/ui/page-header";
 import { usePathname } from "next/navigation";
@@ -15,10 +16,11 @@ interface Channel {
     description?: string;
 }
 
-type TimeRange = 'Last 24 hours' | '7 days' | '30 days' | 'Lifetime';
+type TimeRange = '24 hours' | '7 days' | '30 days' | 'Lifetime';
 
 export function Navbar() {
     const { setChannelId, setChannelName, timeRange, setTimeRange } = useChannel();
+    const { toggleSidebar } = useSidebar();
     const [searchQuery, setSearchQuery] = useState("");
     const [searchResults, setSearchResults] = useState<Channel[]>([]);
     const [isLoading, setIsLoading] = useState(false);
@@ -38,7 +40,7 @@ export function Navbar() {
 
     const pageTitle = routeTitles[pathname] || 'Dashboard';
 
-    const timeRanges: TimeRange[] = ['Last 24 hours', '7 days', '30 days', 'Lifetime'];
+    const timeRanges: TimeRange[] = ['24 hours', '7 days', '30 days', 'Lifetime'];
 
     const performSearch = async (query: string) => {
         if (!query.trim()) {
@@ -110,6 +112,7 @@ export function Navbar() {
                     <button
                         className="lg:hidden p-2 rounded-md hover:bg-gray-100 transition-colors"
                         aria-label="Toggle sidebar"
+                        onClick={toggleSidebar}
                     >
                         <Menu size={20} className="text-gray-700" />
                     </button>
@@ -138,7 +141,7 @@ export function Navbar() {
                                                 setTimeRange(range);
                                                 setShowTimeDropdown(false);
                                             }}
-                                            className={`w-full text-left px-3 py-1.5 text-sm rounded transition-colors ${timeRange === range
+                                            className={`w-full text-left px-3 py-2 text-sm rounded transition-colors ${timeRange === range
                                                 ? 'bg-gray-100 text-gray-900 font-medium'
                                                 : 'text-gray-700 hover:bg-gray-50'
                                                 }`}
@@ -213,27 +216,7 @@ export function Navbar() {
 
                 {/* Right Section - Actions */}
                 <div className="flex items-center gap-2">
-                    {/* Notifications */}
-                    <button
-                        className="relative p-2 rounded-md hover:bg-gray-100 transition-colors"
-                        aria-label="Notifications"
-                    >
-                        <Bell size={20} className="text-gray-700" />
-                        <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full"></span>
-                    </button>
 
-                    {/* Help */}
-                    <button
-                        className="p-2 rounded-md hover:bg-gray-100 transition-colors"
-                        aria-label="Help"
-                    >
-                        <HelpCircle size={20} className="text-gray-700" />
-                    </button>
-
-                    {/* User Avatar Placeholder */}
-                    <div className="ml-2 w-8 h-8 rounded-full bg-gradient-to-br from-red-500 to-red-600 flex items-center justify-center text-white text-sm font-semibold cursor-pointer hover:ring-2 hover:ring-red-200 transition-all">
-                        YT
-                    </div>
                 </div>
 
             </div>
