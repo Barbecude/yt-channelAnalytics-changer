@@ -17,6 +17,7 @@ import {
 export async function GET(request: NextRequest) {
   const searchParams = request.nextUrl.searchParams;
   const channelId = searchParams.get('channelId');
+  const timeRange = searchParams.get('timeRange') || 'Lifetime';
 
   if (!channelId) {
     return NextResponse.json(
@@ -28,13 +29,31 @@ export async function GET(request: NextRequest) {
   try {
     const session: any = await getServerSession(authOptions);
 
+    // Calculate start and end dates based on timeRange
+    const endDate = new Date();
+    const startDate = new Date();
+
+    if (timeRange === 'Last 24 hours') {
+      startDate.setDate(endDate.getDate() - 1);
+    } else if (timeRange === '7 days') {
+      startDate.setDate(endDate.getDate() - 7);
+    } else if (timeRange === '30 days') {
+      startDate.setDate(endDate.getDate() - 30);
+    } else {
+      // Lifetime (default to 2010-01-01 or similar)
+      startDate.setFullYear(2010, 0, 1);
+    }
+
+    const startDateStr = startDate.toISOString().split('T')[0];
+    const endDateStr = endDate.toISOString().split('T')[0];
+
     // Fetch data untuk channel yang dipilih
     const [channelStats, totalRevenue, popularVideosRaw, analyticsData, geoData] = await Promise.all([
       getChannelStatistics(channelId),
-      session?.accessToken ? getRevenue(session.accessToken) : Promise.resolve(null),
+      session?.accessToken ? getRevenue(session.accessToken, startDateStr, endDateStr) : Promise.resolve(null),
       getMostPopularVideos(channelId),
-      session?.accessToken ? getTotalViewsAnalytics(session.accessToken) : Promise.resolve([]),
-      session?.accessToken ? getGeoAnalytics(session.accessToken) : Promise.resolve([]),
+      session?.accessToken ? getTotalViewsAnalytics(session.accessToken, startDateStr, endDateStr) : Promise.resolve([]),
+      session?.accessToken ? getGeoAnalytics(session.accessToken, startDateStr, endDateStr) : Promise.resolve([]),
     ]);
 
     // Get first video ID
@@ -52,7 +71,7 @@ export async function GET(request: NextRequest) {
     // Fetch video analytics
     const [videoAnalytics, combinedVideos] = await Promise.all([
       session?.accessToken && firstVideoId
-        ? getVideoAnalytics(session.accessToken, firstVideoId)
+        ? getVideoAnalytics(session.accessToken, firstVideoId, startDateStr, endDateStr)
         : Promise.resolve(null),
       enrichVideosWithDetails(popularVideosRaw),
     ]);

@@ -9,6 +9,7 @@ import { useSession } from "next-auth/react";
 import { formatNumber } from "@/app/lib/formaters";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import GeoMap from "@/components/dashboard/GeoMap";
 
 interface DashboardData {
   channelStats: any;
@@ -25,17 +26,17 @@ interface DashboardWrapperProps {
 }
 
 export function DashboardWrapper({ initialData, defaultChannelId }: DashboardWrapperProps) {
-  const { channelId } = useChannel();
+  const { channelId, timeRange } = useChannel();
   const { data: session } = useSession();
   const [data, setData] = useState<DashboardData>(initialData);
   const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
-    if (channelId && channelId !== defaultChannelId) {
+    if (channelId) {
       const fetchNewData = async () => {
         setIsLoading(true);
         try {
-          const response = await fetch(`/api/dashboard?channelId=${channelId}`);
+          const response = await fetch(`/api/dashboard?channelId=${channelId}&timeRange=${timeRange}`);
           if (response.ok) {
             const newData = await response.json();
             setData(newData);
@@ -47,11 +48,8 @@ export function DashboardWrapper({ initialData, defaultChannelId }: DashboardWra
         }
       };
       fetchNewData();
-    } else if (channelId === defaultChannelId) {
-      setData(initialData);
-      setIsLoading(false);
     }
-  }, [channelId, defaultChannelId, initialData]);
+  }, [channelId, defaultChannelId, initialData, timeRange]);
 
   const firstVideo = data.combinedVideos[0];
 
@@ -64,12 +62,6 @@ export function DashboardWrapper({ initialData, defaultChannelId }: DashboardWra
           </Card>
         </div>
       )}
-
-      {/* Popular Video - Top Section */}
-      <section className="mb-5">
-        <PopularVideoCard video={firstVideo} />
-      </section>
-
       {/* Stats Row - 3 Cards */}
       <section className="grid grid-cols-1 md:grid-cols-3 gap-5 mb-5">
         <Card>
@@ -114,6 +106,24 @@ export function DashboardWrapper({ initialData, defaultChannelId }: DashboardWra
           </CardContent>
         </Card>
       </section>
+      {/* Popular Video & Geo Map - Top Section */}
+      <section className="grid grid-cols-1 lg:grid-cols-2 gap-5 mb-5">
+        {/* Popular Video */}
+        <PopularVideoCard video={firstVideo} />
+
+        {/* Geo Map */}
+        <Card className="overflow-hidden">
+          <CardHeader>
+            <CardTitle>Geographic Distribution</CardTitle>
+            <CardDescription>Views by Country</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <GeoMap data={data.geoData} />
+          </CardContent>
+        </Card>
+      </section>
+
+
 
       {/* Channel Views Chart and Recent Videos - 2 Column Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-5 mb-5">

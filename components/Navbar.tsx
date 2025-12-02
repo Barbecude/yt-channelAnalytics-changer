@@ -18,12 +18,11 @@ interface Channel {
 type TimeRange = 'Last 24 hours' | '7 days' | '30 days' | 'Lifetime';
 
 export function Navbar() {
-    const { setChannelId, setChannelName } = useChannel();
+    const { setChannelId, setChannelName, timeRange, setTimeRange } = useChannel();
     const [searchQuery, setSearchQuery] = useState("");
     const [searchResults, setSearchResults] = useState<Channel[]>([]);
     const [isLoading, setIsLoading] = useState(false);
     const [showPopup, setShowPopup] = useState(false);
-    const [timeRange, setTimeRange] = useState<TimeRange>('30 days');
     const [showTimeDropdown, setShowTimeDropdown] = useState(false);
     const debounceTimer = useRef<NodeJS.Timeout | null>(null);
     const pathname = usePathname();
@@ -101,8 +100,6 @@ export function Navbar() {
         }
         return count.toString();
     };
-
-
 
     return (
         <nav className="h-16 bg-white border-b border-gray-200 sticky top-0 z-50">

@@ -1,214 +1,350 @@
 'use client';
 
-import { useEffect, useState, useRef, useCallback } from "react";
+import { useEffect, useState } from "react";
 import { useChannel } from "@/app/context/ChannelContext";
 import Image from "next/image";
+import { Card, CardContent } from "@/components/ui/card";
+import {
+    Table,
+    TableBody,
+    TableCell,
+    TableHead,
+    TableHeader,
+    TableRow,
+} from "@/components/ui/table";
+import { Button } from "@/components/ui/button";
+import { Edit, Eye, EyeOff, Lock, DollarSign, MessageSquare, ThumbsUp, ChevronLeft, ChevronRight } from "lucide-react";
 
 
 export default function AllVideosPage() {
-    const { channelId } = useChannel();
+    const { channelId, timeRange } = useChannel();
     const [allVideos, setAllVideos] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
-    const [loadingMore, setLoadingMore] = useState(false);
-    const [nextPageToken, setNextPageToken] = useState<string | null>(null);
-    const [hasMore, setHasMore] = useState(true);
-    const observerTarget = useRef<HTMLDivElement>(null);
+    const [currentPage, setCurrentPage] = useState(1);
+    const [totalVideos, setTotalVideos] = useState(0);
+    const videosPerPage = 10;
 
-    // Fetch initial videos
-    const fetchVideos = useCallback(async (isInitial = false) => {
-        if (!channelId) return;
+    // Fetch videos for current page
+    useEffect(() => {
+        const fetchVideos = async () => {
+            if (!channelId) return;
 
-        if (isInitial) {
             setLoading(true);
-            setAllVideos([]);
-            setNextPageToken(null);
-            setHasMore(true);
-        } else {
-            setLoadingMore(true);
-        }
+            try {
+                const url = `/api/videos?channelId=${channelId}&timeRange=${timeRange}`;
+                const response = await fetch(url);
 
-        try {
-            let url = `/api/videos?channelId=${channelId}`;
-            if (!isInitial && nextPageToken) {
-                url += `&pageToken=${nextPageToken}`;
-            }
-
-            const response = await fetch(url);
-            if (!response.ok) {
-                throw new Error('Failed to fetch videos');
-            }
-
-            const data = await response.json();
-
-            if (isInitial) {
-                setAllVideos(data.videos || []);
-            } else {
-                setAllVideos(prev => [...prev, ...(data.videos || [])]);
-            }
-
-            setNextPageToken(data.nextPageToken);
-            setHasMore(!!data.nextPageToken);
-        } catch (error) {
-            console.error('Error fetching videos:', error);
-            if (isInitial) {
-                setAllVideos([]);
-            }
-        } finally {
-            setLoading(false);
-            setLoadingMore(false);
-        }
-    }, [channelId, nextPageToken]);
-
-    // Initial fetch when channel changes
-    useEffect(() => {
-        fetchVideos(true);
-    }, [channelId]);
-
-    // Intersection Observer for infinite scroll
-    useEffect(() => {
-        const observer = new IntersectionObserver(
-            (entries) => {
-                if (entries[0].isIntersecting && hasMore && !loadingMore && !loading) {
-                    fetchVideos(false);
+                if (!response.ok) {
+                    throw new Error('Failed to fetch videos');
                 }
-            },
-            { threshold: 0.1 }
-        );
 
-        const currentTarget = observerTarget.current;
-        if (currentTarget) {
-            observer.observe(currentTarget);
-        }
-
-        return () => {
-            if (currentTarget) {
-                observer.unobserve(currentTarget);
+                const data = await response.json();
+                setAllVideos(data.videos || []);
+                setTotalVideos(data.videos?.length || 0);
+            } catch (error) {
+                console.error('Error fetching videos:', error);
+                setAllVideos([]);
+                setTotalVideos(0);
+            } finally {
+                setLoading(false);
             }
         };
-    }, [hasMore, loadingMore, loading, fetchVideos]);
+
+        fetchVideos();
+        setCurrentPage(1); // Reset to first page when channel or timeRange changes
+    }, [channelId, timeRange]);
+
+    const handleEdit = (videoId: string) => {
+        // TODO: Implement edit functionality
+        console.log('Edit video:', videoId);
+    };
+
+    // Calculate pagination
+    const totalPages = Math.ceil(totalVideos / videosPerPage);
+    const startIndex = (currentPage - 1) * videosPerPage;
+    const endIndex = startIndex + videosPerPage;
+    const currentVideos = allVideos.slice(startIndex, endIndex);
+
+    const goToPage = (page: number) => {
+        setCurrentPage(page);
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    };
+
+    const goToPreviousPage = () => {
+        if (currentPage > 1) {
+            goToPage(currentPage - 1);
+        }
+    };
+
+    const goToNextPage = () => {
+        if (currentPage < totalPages) {
+            goToPage(currentPage + 1);
+        }
+    };
+
+    // Generate page numbers to display
+    const getPageNumbers = () => {
+        const pages = [];
+        const maxPagesToShow = 5;
+
+        if (totalPages <= maxPagesToShow) {
+            // Show all pages
+            for (let i = 1; i <= totalPages; i++) {
+                pages.push(i);
+            }
+        } else {
+            // Always show first page
+            pages.push(1);
+
+            // Calculate range around current page
+            let startPage = Math.max(2, currentPage - 1);
+            let endPage = Math.min(totalPages - 1, currentPage + 1);
+
+            // Add ellipsis after first page if needed
+            if (startPage > 2) {
+                pages.push('...');
+            }
+
+            // Add pages around current page
+            for (let i = startPage; i <= endPage; i++) {
+                pages.push(i);
+            }
+
+            // Add ellipsis before last page if needed
+            if (endPage < totalPages - 1) {
+                pages.push('...');
+            }
+
+            // Always show last page
+            pages.push(totalPages);
+        }
+
+        return pages;
+    };
 
     return (
- 
-            <div className="mx-auto">
-                {/* Loading State */}
-                {loading && (
-                    <div className="text-center py-12">
-                        <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-gray-900"></div>
-                        <p className="text-gray-500 text-lg mt-4">Loading videos...</p>
-                    </div>
-                )}
+        <div>
+            {/* Loading State */}
+            {loading && (
+                <div className="text-center py-12">
+                    <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-gray-900"></div>
+                    <p className="text-gray-500 text-lg mt-4">Loading videos...</p>
+                </div>
+            )}
 
-                {/* Videos Grid - Column Layout */}
-                {!loading && (
-                    <>
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                            {allVideos.map((video: any) => {
-                                const videoId = typeof video.id === 'string' ? video.id : video.id?.videoId;
-                                const thumbnail = video.snippet?.thumbnails?.high?.url || video.snippet?.thumbnails?.medium?.url;
-                                const title = video.snippet?.title || 'Untitled Video';
-                                const publishedAt = new Date(video.snippet?.publishedAt).toLocaleDateString('en-US', {
-                                    year: 'numeric',
-                                    month: 'short',
-                                    day: 'numeric'
-                                });
+            {/* Videos Table */}
+            {!loading && (
+                <>
+                    <Card>
+                        <CardContent className="p-0">
+                            <Table>
+                                <TableHeader>
+                                    <TableRow>
+                                        <TableHead className="w-[100px]">Video</TableHead>
+                                        <TableHead className="w-[100px]"></TableHead>
+                                        <TableHead className="w-[120px]">Views</TableHead>
+                                        <TableHead className="w-[120px]">Likes</TableHead>
+                                        <TableHead className="w-[120px]">Comments</TableHead>
+                                        <TableHead className="w-[120px]">Published</TableHead>
+                                        <TableHead className="w-[200px]">Status</TableHead>
+                                        <TableHead className="w-[100px] text-right">Actions</TableHead>
+                                    </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                    {currentVideos.map((video: any, index: number) => {
+                                        const videoId = typeof video.id === 'string' ? video.id : video.id?.videoId;
+                                        const thumbnail = video.snippet?.thumbnails?.default?.url || video.snippet?.thumbnails?.medium?.url;
+                                        const title = video.snippet?.title || 'Untitled Video';
+                                        const publishedAt = new Date(video.snippet?.publishedAt).toLocaleDateString('en-US', {
+                                            year: 'numeric',
+                                            month: 'short',
+                                            day: 'numeric'
+                                        });
 
-                                return (
-                                    <div
-                                        key={videoId}
-                                        className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-xl transition-shadow duration-300"
-                                    >
-                                        {/* Thumbnail */}
-                                        <a
-                                            href={`https://www.youtube.com/watch?v=${videoId}`}
-                                            target="_blank"
-                                            rel="noopener noreferrer"
-                                            className="block relative aspect-video bg-gray-200"
-                                        >
-                                            {thumbnail && (
-                                                <Image
-                                                    src={thumbnail}
-                                                    alt={title}
-                                                    fill
-                                                    className="object-cover"
-                                                    sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-                                                />
-                                            )}
-                                        </a>
+                                        return (
+                                            <TableRow key={videoId}>
+                                                {/* Thumbnail */}
+                                                <TableCell>
+                                                    <a
+                                                        href={`https://www.youtube.com/watch?v=${videoId}`}
+                                                        target="_blank"
+                                                        rel="noopener noreferrer"
+                                                    >
+                                                        <div className="relative w-20 h-12 rounded overflow-hidden bg-gray-200">
+                                                            {thumbnail && (
+                                                                <Image
+                                                                    src={thumbnail}
+                                                                    alt={title}
+                                                                    fill
+                                                                    className="object-cover"
+                                                                    sizes="80px"
+                                                                />
+                                                            )}
+                                                        </div>
+                                                    </a>
+                                                </TableCell>
 
-                                        {/* Video Info */}
-                                        <div className="p-4">
-                                            <a
-                                                href={`https://www.youtube.com/watch?v=${videoId}`}
-                                                target="_blank"
-                                                rel="noopener noreferrer"
+                                                {/* Title */}
+                                                <TableCell>
+                                                    <a
+                                                        href={`https://www.youtube.com/watch?v=${videoId}`}
+                                                        target="_blank"
+                                                        rel="noopener noreferrer"
+                                                        className="font-medium hover:text-blue-600 line-clamp-2"
+                                                    >
+                                                        {title}
+                                                    </a>
+                                                    <p className="text-xs text-gray-500">{video.snippet?.description}</p>
+                                                </TableCell>
+
+                                                {/* Views */}
+                                                <TableCell>
+                                                    <div className="flex items-center gap-1 text-sm">
+                                                        <Eye className="w-4 h-4 text-gray-500" />
+                                                        <span>{parseInt(video.statistics?.viewCount || 0).toLocaleString()}</span>
+                                                    </div>
+                                                </TableCell>
+
+                                                {/* Likes */}
+                                                <TableCell>
+                                                    <div className="flex items-center gap-1 text-sm">
+                                                        <ThumbsUp className="w-4 h-4 text-gray-500" />
+                                                        <span>{parseInt(video.statistics?.likeCount || 0).toLocaleString()}</span>
+                                                    </div>
+                                                </TableCell>
+
+                                                {/* Comments */}
+                                                <TableCell>
+                                                    <div className="flex items-center gap-1 text-sm">
+                                                        <MessageSquare className="w-4 h-4 text-gray-500" />
+                                                        <span>{parseInt(video.statistics?.commentCount || 0).toLocaleString()}</span>
+                                                    </div>
+                                                </TableCell>
+
+                                                {/* Published Date */}
+                                                <TableCell className="text-sm text-gray-600">
+                                                    {publishedAt}
+                                                </TableCell>
+
+                                                {/* Status Badges */}
+                                                <TableCell>
+                                                    <div className="flex flex-wrap gap-1">
+                                                        {/* Visibility */}
+                                                        {video.status?.privacyStatus === 'public' && (
+                                                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                                                                <Eye className="w-3 h-3" />
+                                                                Public
+                                                            </span>
+                                                        )}
+                                                        {video.status?.privacyStatus === 'unlisted' && (
+                                                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-orange-100 text-orange-800">
+                                                                <EyeOff className="w-3 h-3" />
+                                                                Unlisted
+                                                            </span>
+                                                        )}
+                                                        {video.status?.privacyStatus === 'private' && (
+                                                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                                                                <Lock className="w-3 h-3" />
+                                                                Private
+                                                            </span>
+                                                        )}
+
+                                                        {/* Monetization */}
+                                                        {Math.random() > 0.3 ? (
+                                                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                                                                <DollarSign className="w-3 h-3" />
+                                                                Monetized
+                                                            </span>
+                                                        ) : (
+                                                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-600">
+                                                                <DollarSign className="w-3 h-3" />
+                                                                Not Monetized
+                                                            </span>
+                                                        )}
+                                                    </div>
+                                                </TableCell>
+
+                                                {/* Actions */}
+                                                <TableCell className="text-right">
+                                                    <Button
+                                                        variant="outline"
+                                                        size="sm"
+                                                        onClick={() => handleEdit(videoId)}
+                                                        className="h-8 cursor-pointer"
+                                                    >
+                                                        <Edit className="w-4 h-4 mr-1" />
+                                                        Edit
+                                                    </Button>
+                                                </TableCell>
+                                            </TableRow>
+                                        );
+                                    })}
+                                </TableBody>
+                            </Table>
+                        </CardContent>
+                    </Card>
+
+                    {/* Pagination Controls */}
+                    {totalVideos > 0 && (
+                        <div className="mt-6 flex items-center justify-between">
+                            {/* Results info */}
+                            <div className="text-sm text-gray-600">
+                                Showing {startIndex + 1} to {Math.min(endIndex, totalVideos)} of {totalVideos} videos
+                            </div>
+
+                            {/* Pagination buttons */}
+                            <div className="flex items-center gap-2">
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={goToPreviousPage}
+                                    disabled={currentPage === 1}
+                                    className="h-9"
+                                >
+                                    <ChevronLeft className="w-4 h-4 mr-1" />
+                                    Previous
+                                </Button>
+
+                                <div className="flex items-center gap-1">
+                                    {getPageNumbers().map((page, index) => (
+                                        page === '...' ? (
+                                            <span key={`ellipsis-${index}`} className="px-2">...</span>
+                                        ) : (
+                                            <Button
+                                                key={page}
+                                                variant={currentPage === page ? "default" : "outline"}
+                                                size="sm"
+                                                onClick={() => goToPage(page as number)}
+                                                className="h-9 w-9 p-0"
                                             >
-                                                <h3 className="font-semibold text-gray-900 mb-2 line-clamp-2 hover:text-blue-600 transition-colors">
-                                                    {title}
-                                                </h3>
-                                            </a>
+                                                {page}
+                                            </Button>
+                                        )
+                                    ))}
+                                </div>
 
-                                            <p className="text-sm text-gray-500 mb-3">{publishedAt}</p>
-
-                                            {/* Statistics */}
-                                            {video.statistics && (
-                                                <div className="flex items-center gap-4 text-sm text-gray-600">
-                                                    <div className="flex items-center gap-1">
-                                                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                                                        </svg>
-                                                        <span>{parseInt(video.statistics.viewCount || 0).toLocaleString()}</span>
-                                                    </div>
-
-                                                    <div className="flex items-center gap-1">
-                                                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 10h4.764a2 2 0 011.789 2.894l-3.5 7A2 2 0 0115.263 21h-4.017c-.163 0-.326-.02-.485-.06L7 20m7-10V5a2 2 0 00-2-2h-.095c-.5 0-.905.405-.905.905 0 .714-.211 1.412-.608 2.006L7 11v9m7-10h-2M7 20H5a2 2 0 01-2-2v-6a2 2 0 012-2h2.5" />
-                                                        </svg>
-                                                        <span>{parseInt(video.statistics.likeCount || 0).toLocaleString()}</span>
-                                                    </div>
-
-                                                    <div className="flex items-center gap-1">
-                                                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z" />
-                                                        </svg>
-                                                        <span>{parseInt(video.statistics.commentCount || 0).toLocaleString()}</span>
-                                                    </div>
-                                                </div>
-                                            )}
-                                        </div>
-                                    </div>
-                                );
-                            })}
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={goToNextPage}
+                                    disabled={currentPage === totalPages}
+                                    className="h-9"
+                                >
+                                    Next
+                                    <ChevronRight className="w-4 h-4 ml-1" />
+                                </Button>
+                            </div>
                         </div>
+                    )}
+                </>
+            )}
 
-                        {/* Infinite Scroll Trigger */}
-                        {hasMore && (
-                            <div ref={observerTarget} className="text-center py-12">
-                                {loadingMore && (
-                                    <>
-                                        <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
-                                        <p className="text-gray-500 mt-4">Loading more videos...</p>
-                                    </>
-                                )}
-                            </div>
-                        )}
-
-                        {/* End of Videos Message */}
-                        {!hasMore && allVideos.length > 0 && (
-                            <div className="text-center py-12">
-                                <p className="text-gray-500">🎉 You've reached the end! All videos loaded.</p>
-                            </div>
-                        )}
-                    </>
-                )}
-
-                {/* Empty State */}
-                {!loading && allVideos.length === 0 && (
-                    <div className="text-center py-12">
-                        <p className="text-gray-500 text-lg">No videos found</p>
-                    </div>
-                )}
-            </div>
-     
+            {/* Empty State */}
+            {!loading && allVideos.length === 0 && (
+                <div className="text-center py-12">
+                    <p className="text-gray-500 text-lg">No videos found</p>
+                </div>
+            )}
+        </div>
     );
 }

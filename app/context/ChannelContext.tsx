@@ -2,17 +2,22 @@
 
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 
+export type TimeRange = 'Last 24 hours' | '7 days' | '30 days' | 'Lifetime';
+
 interface ChannelContextType {
   channelId: string;
   setChannelId: (id: string) => void;
   channelName: string;
   setChannelName: (name: string) => void;
+  timeRange: TimeRange;
+  setTimeRange: (range: TimeRange) => void;
 }
 
 const ChannelContext = createContext<ChannelContextType | undefined>(undefined);
 
 const STORAGE_KEY_CHANNEL_ID = 'youtube_dashboard_channel_id';
 const STORAGE_KEY_CHANNEL_NAME = 'youtube_dashboard_channel_name';
+const STORAGE_KEY_TIME_RANGE = 'youtube_dashboard_time_range';
 
 export function ChannelProvider({ children, initialChannelId }: { children: ReactNode; initialChannelId: string }) {
   // Initialize state from localStorage or use initialChannelId
@@ -31,6 +36,13 @@ export function ChannelProvider({ children, initialChannelId }: { children: Reac
     return '';
   });
 
+  const [timeRange, setTimeRangeState] = useState<TimeRange>(() => {
+    if (typeof window !== 'undefined') {
+      return (localStorage.getItem(STORAGE_KEY_TIME_RANGE) as TimeRange) || 'Lifetime';
+    }
+    return 'Lifetime';
+  });
+
   // Wrapper functions to sync with localStorage
   const setChannelId = (id: string) => {
     setChannelIdState(id);
@@ -46,8 +58,15 @@ export function ChannelProvider({ children, initialChannelId }: { children: Reac
     }
   };
 
+  const setTimeRange = (range: TimeRange) => {
+    setTimeRangeState(range);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem(STORAGE_KEY_TIME_RANGE, range);
+    }
+  };
+
   return (
-    <ChannelContext.Provider value={{ channelId, setChannelId, channelName, setChannelName }}>
+    <ChannelContext.Provider value={{ channelId, setChannelId, channelName, setChannelName, timeRange, setTimeRange }}>
       {children}
     </ChannelContext.Provider>
   );
