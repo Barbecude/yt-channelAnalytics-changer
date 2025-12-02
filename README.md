@@ -19,7 +19,6 @@
   </a>
 </p>
 
-[View Demo](https://your-demo-link.com) · [Report Bug](https://github.com/yourusername/repo/issues) · [Request Feature](https://github.com/yourusername/repo/issues)
 
 </div>
 
@@ -45,7 +44,7 @@ It leverages the power of **Next.js App Router** and **Server Components** to fe
 ## 📸 Screenshots
 
 <div align="center">
-  <img src="https://placehold.co/800x450/EEE/31343C?text=Dashboard+Preview+Image" alt="Dashboard Screenshot" width="800" />
+  <img src="public/photos/preview.png" alt="Dashboard Screenshot" width="800" />
 </div>
 
 > *The interface automatically adapts based on user authentication state.*
